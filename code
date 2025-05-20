@@ -1,0 +1,164 @@
+import tkinter as tk 
+import random 
+import time 
+ 
+class MemoryPuzzle: 
+    def __init__(self, master): 
+        self.master = master 
+        self.master.title("🧠 Memory Puzzle Game") 
+        self.master.configure(bg="#d0f0c0")  # light green colour for background 
+        self.buttons = [] 
+        self.first = None 
+        self.second = None 
+        self.matches_found = 0 
+        self.start_time = time.time() 
+        self.game_over = False   # <-- add game over flag 
+ 
+        # Puzzle symbols 
+        self.symbols = list('AABBCCDDEEFFGGHH') 
+        random.shuffle(self.symbols) 
+ 
+        # Timer Frame 
+        self.top_frame = tk.Frame(self.master, bg="#d0f0c0") 
+        self.top_frame.pack(pady=10) 
+ 
+        self.timer_label = tk.Label( 
+            self.top_frame, text="Time: 0s", 
+            font=("Arial", 18, "bold"), bg="#d0f0c0", fg="#333" 
+        ) 
+        self.timer_label.pack() 
+ 
+        # Buttons Frame 
+        self.frame = tk.Frame(self.master, bg="#d0f0c0", padx=20, pady=10) 
+        self.frame.pack(expand=True) 
+ 
+        self.create_buttons() 
+        self.update_timer() 
+ 
+    def create_buttons(self): 
+        for i in range(4): 
+            row = [] 
+            for j in range(4): 
+                btn = tk.Button( 
+                    self.frame, text=" ", width=6, height=3, 
+                    font=("Helvetica", 20, "bold"), 
+                    bg="#add8e6", fg="#333", 
+                    activebackground="#87cefa", 
+                    command=lambda i=i, j=j: self.reveal(i, j) 
+                ) 
+                btn.grid(row=i, column=j, padx=15, pady=15) 
+                row.append(btn) 
+            self.buttons.append(row) 
+ 
+    def reveal(self, i, j): 
+        btn = self.buttons[i][j] 
+        if btn["text"] == " " and not self.second: 
+            btn["text"] = self.symbols[i * 4 + j] 
+            btn.update() 
+ 
+            if not self.first: 
+                self.first = (i, j) 
+            else: 
+                self.second = (i, j) 
+                self.master.after(600, self.check_match) 
+ 
+    def check_match(self): 
+        i1, j1 = self.first 
+        i2, j2 = self.second 
+ 
+        if self.symbols[i1 * 4 + j1] == self.symbols[i2 * 4 + j2]: 
+            self.buttons[i1][j1]["bg"] = "#90ee90" 
+            self.buttons[i2][j2]["bg"] = "#90ee90" 
+            self.matches_found += 1 
+        else: 
+            self.buttons[i1][j1]["text"] = " " 
+            self.buttons[i2][j2]["text"] = " " 
+ 
+        self.first = None 
+        self.second = None 
+ 
+        if self.matches_found == 8: 
+            self.show_victory_popup() 
+ 
+    def show_victory_popup(self): 
+        self.game_over = True  # <-- Stop the timer when game finishes 
+        end_time = time.time() 
+        total_time = round(end_time - self.start_time, 2) 
+ 
+        popup = tk.Toplevel(self.master) 
+        popup.title("🎉 Congratulations!") 
+        popup.configure(bg="#e6ffe6") 
+        popup.geometry("400x300") 
+        popup.resizable(False, False) 
+ 
+        label = tk.Label( 
+            popup, text=f"You finished in {total_time} seconds!", 
+            font=("Arial", 16, "bold"), bg="#e6ffe6", fg="#2e8b57" 
+        ) 
+        label.pack(pady=30) 
+ 
+        play_again_btn = tk.Button( 
+            popup, text="Play Again", font=("Arial", 14), 
+            bg="#32cd32", fg="white", command=lambda: [popup.destroy(), self.restart_game()] 
+        ) 
+        play_again_btn.pack(pady=10) 
+ 
+        exit_btn = tk.Button( 
+            popup, text="Exit Game", font=("Arial", 14), 
+            bg="#ff4c4c", fg="white", command=self.exit_game 
+        ) 
+        exit_btn.pack(pady=10) 
+ 
+    def restart_game(self): 
+        self.first = None 
+        self.second = None 
+        self.matches_found = 0 
+ 
+        random.shuffle(self.symbols) 
+ 
+        for i in range(4): 
+            for j in range(4): 
+                btn = self.buttons[i][j] 
+                btn.config(text=" ", bg="#add8e6", state="disabled")  # Disable buttons 
+ 
+        self.countdown(3)  # <-- Start 3-second countdown 
+      
+ 
+    def exit_game(self): 
+        self.master.destroy()  # <-- Properly destroy root window 
+ 
+    def update_timer(self): 
+        if not self.game_over: 
+            elapsed = int(time.time() - self.start_time) 
+            self.timer_label.config(text=f"Time: {elapsed}s") 
+            self.master.after(1000, self.update_timer) 
+ 
+    def countdown(self, count): 
+        if count > 0: 
+            self.timer_label.config(text=f"Starting in {count}...", fg="red") 
+            self.master.after(1000, lambda: self.countdown(count-1)) 
+        else: 
+            self.timer_label.config(text="Time: 0s", fg="#333") 
+            self.start_time = time.time() 
+            self.game_over = False 
+            self.update_timer() 
+ 
+            # Enable all buttons again 
+            for i in range(4): 
+                for j in range(4): 
+                    self.buttons[i][j].config(state="normal") 
+ 
+ 
+ 
+if __name__ == "__main__": 
+    root = tk.Tk() 
+    window_width = 650 
+    window_height = 750 
+    screen_width = root.winfo_screenwidth() 
+    screen_height = root.winfo_screenheight() 
+    x = int((screen_width/2) - (window_width/2)) 
+    y = int((screen_height/2) - (window_height/2)) 
+    root.geometry(f"{window_width}x{window_height}+{x}+{y}") 
+    root.resizable(False, False) 
+    game = MemoryPuzzle(root) 
+    root.mainloop() 
